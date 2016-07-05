@@ -1,209 +1,221 @@
-/*
- * Author: Raj A
- *
- * File: llist.c
- * Linked list to do various llist activities
- */
-
-struct node {
-    struct node *next;
-    void *data;
-};
-
-/*
- * number of items in list that match the item value
- */
-int 
-listCount (struct node *head, int search_item)
+int Count (struct node* head, int searchFor)
 {
-    int count = 0;
-    while(head != NULL) {
-        if ((int)head->data == search_item) {
-            count++;
-        }
-        head = head->next;
-    }
-    return count;
+   int count = 0;
+   while (head != NULL) {
+      if (searchFor == head->data) {
+         count++;
+      }
+      head = head->next;
+   }
+   return count;
+}
+
+int GetNth (struct node* head, int index)
+{
+   int currIndex = 0;
+   while (head != NULL) {
+      if (index == currIndex) {
+         return head;
+      }
+      currIndex++;
+   }
+   return NULL;
+}
+
+struct node *allocNode (int data)
+{
+    return calloc(1, sizeof(struct node));
+}
+
+void InsertNth (struct node** headRef, int index, int data)
+{
+   int currIndex = 0;
+   struct node *currNode = NULL;
+
+   assert(headRef != NULL);
+   if (index == 0) {
+      Push(headRef, data);
+      return;
+   }
+
+   // Find the node before the index where we want to insert
+   currNode = *headRef;
+   while (currIndex < index-1) {
+      currIndex++;
+      assert(currNode != NULL);
+      currNode = currNode->next;
+   }
+
+   // Insert the node
+   Push(&(currNode->next), data);
+
+   return;
 }
 
 /*
- * Combine standard list iteration with the additional problem of counting 
- * over to find the right node. Off-by-one errors are common in this sort 
- * of code. 
- * Check it carefully against a simple case. If it's right for n=0, n=1, 
- * and n=2, it will probably be right for n=1000.
+ * Iterative list reverse.
+ * Iterate through the list left-right.
+ * Move/insert each node to the front of the result list --
+ * like a Push of the node.
  */
-int 
-getNth (struct node *head, int index)
+static void Reverse1 (struct node** headRef) 
 {
-    while (head) {
-        if (count == index) {
-            return (int)head->data;
-        }
-        count++; head = head->next;
-    }
-    return 0;
+   struct node *curr = NULL;
+   struct node *result = NULL;
+   struct node *next = NULL;
+
+   curr = *headRef;
+   while (curr != NULL) {
+      next = curr->next;
+      curr->next = result;
+      result = curr;
+      curr = next;
+   }
+   *headRef = result;
 }
 
-/*
- * Delete the whole list and set the head pointer to NULL. There is a 
- * slight complication inside the loop, since we need extract the next 
- * pointer before we delete the node, since after the delete it will be 
- * technically unavailable.
- */
-void
-deleteList (struct node **head)
+void Reverse2 (struct node** headRef) 
 {
-    struct node *curr, *next;
-
-		if ((curr = *head) == NULL) return;
-
-		while (curr != NULL) {
-		    next = curr->next;
-				free(curr);
-				curr = next;
-		}
-		*head = NULL;
-		return;
-}
-
-/*
- * Extract the data from the head node, delete the node, advance the head 
- * pointer to point at the next node in line. Uses a reference parameter 
- * since it changes the head pointer.
- */
-int
-pop (struct node **head)
-{
+    struct node *front;
     struct node *curr;
-		int result;
+    struct node *back;
 
-		if (head == NULL) return 0;
+    curr = *headRef;
+    front = curr->next;
+    back = NULL;
 
-		curr = *head;
-		*head = curr->next;
-		result = (int)curr->data;
-		free(curr);
-		return result;
-}
-
-/*
- * The basic strategy is to iterate down the list looking for the place to 
- * insert the new node. That could be the end of the list, or a point just 
- * before a node which is larger than the new node. 
- */
-void 
-sortedInsert (struct node **head, struct node *newp)
-{
-		struct node *curr;
-    if (*head == NULL) {
-		    *head = newp;
-				return;
-		}
-		curr = *head;
-		if (curr->data > newp->data) {
-		    *head = newp;
-				newp->next = curr;
-				return;
-		}
-		while (curr->next != NULL && curr->next->data < newp->data) {
-				curr = curr->next;
-		}
-		newp->next = curr->next;
-		curr->next = newp;
-		return;
-}
-
-/*
- * Start with an empty result list. Iterate through the source list and 
- * sortedInsert() each of its nodes into the result list. Be careful to 
- * note the .next field in each node before moving it into the result list.
- */
-void
-sortList (struct node **head)
-{
-    struct node *curr, *newlist = NULL;
-
-		if ((curr = *head) == NULL) {
-		    return;
-		}
-
-		while (curr != NULL) {
-		    struct node *next = curr->next;
-				sortedInsert(&newlist, curr);
-				curr = next;
-		}
-
-		return;
-}
-
-/*
- * Remove duplicates from a sorted list:
- *
- * Since the list is sorted, we can proceed down the list and compare 
- * adjacent nodes. When adjacent nodes are the same, remove the second one. 
- * There's a tricky case where the node after the next node needs to be 
- * noted before the deletion.
- */
-void 
-removeDuplicates (struct node* head) 
-{
-    struct node *curr = head;
-
-		if (curr == NULL) return;
-
-		while (curr->next != NULL) {
-				struct node *next = curr->next;
-		    if (curr->data == next->data) {
-				    curr->next = next->next;
-						free(next);
-						continue;
-				}
-				curr = curr->next;
-		}
-		return;
-}
-
-/*
- * Write an iterative Reverse() function that reverses a list by rearranging 
- * all the .next pointers and the head pointer. Ideally, Reverse() should only 
- * need to make one pass of the list. The iterative solution is moderately 
- * tricky. The efficient recursive solution is quite complex 
- * (A memory drawing and some hints for Reverse() are below.)
- */
-void
-reverse (struct node **head)
-{
-    struct node *curr, *next = NULL, *prev = NULL;
-
-		if (head == NULL) return;
-
-		curr = *head;
-		while (curr != NULL) {
-		    next = curr->next;
-				curr->next = prev;
-				prev = current;
-				curr = next;
-		}
-		*head = prev;
-		return;
-}
-
-void
-recursiveReverse (struct node **head)
-{
-		struct node *curr, *next;
-
-    if (head == NULL || *head == NULL) return;
-
-		curr = *head;
-		next = curr->next;
-		if (next == NULL) {
-		    return;
+    while (1) {
+       curr->next = back;
+       if (front == NULL) {
+          return;
+       }
+       back = curr;
+       curr = front;
+       front = front->next;
     }
-		recursiveReverse(&next);
-    next->next = curr;
-		curr->next = NULL;
-		*head = next;
-		return;
+}
+
+void RecursiveReverse (struct node **headRef)
+{
+   struct node *first, *rest;
+
+   if (*headRef == NULL) {
+      return;
+   }
+   first = *headRef;
+   rest = first->next;
+
+   if (rest == NULL) {
+      return;
+   }
+
+   RecursiveReverse(&rest);
+   first->next->next = first;
+   first->next = NULL;
+   *headRef = rest;
+}
+
+
+void Reverse (struct node** headRef) 
+{
+   if (headRef == NULL || 
+       *headRef == NULL || 
+       *headRef->next == NULL) {
+      return;
+   }
+   return Reverse1(headRef);
+}
+
+void Push (struct node **headRef, int data)
+{
+   struct node *currNode = *headRef;
+   struct node *newEntry = allocNode(data);
+
+   *headRef = newEntry;
+   newEntry->next = currNode;
+
+   return;
+}
+
+/*
+ * The opposite of Push(). Takes a non-empty list
+ * and removes the front node, and returns the data
+ * which was in that node.
+ */
+int Pop (struct node** headRef) 
+{
+   struct node *top;
+   int data;
+
+   if (headref == NULL || *headref == NULL) {
+      return 0;
+   }
+   top = *head;
+   *head = top->next;
+   data = top->data;
+   free(top);
+
+   return data;
+}
+
+// Build and return the list {1, 2, 3}
+struct node* BuildOneTwoThree() 
+{
+   struct node* head = NULL; // Start with the empty list
+   Push(&head, 3); // Use Push() to add all the data
+   Push(&head, 2);
+   Push(&head, 1);
+   return(head);
+}
+
+// Remove duplicates from a sorted list
+void RemoveDuplicates (struct node* head) 
+{
+   while (head->next != NULL) {
+      if (head->data == head->next->data) {
+	 struct n28894ode *dup = head->next;
+         head->next = dup->next;
+	 free(dup);
+	 return;
+      }
+   }
+   return;
+}
+
+void printList (struct node *head)
+{
+   if (head == NULL) {
+      printf("Nothing to print in list..\n");
+      return;
+   }
+   while (head != NULL) {
+      printf("currNode = %p, data=0x%x\n", head, head->data);
+      head = head->next;
+   }
+   return;
+}
+
+void PopTest ()
+{
+   struct node* head = BuildOneTwoThree(); // build {1, 2, 3}
+   int a = Pop(&head); // deletes "1" node and returns 1
+   int b = Pop(&head); // deletes "2" node and returns 2
+   int c = Pop(&head); // deletes "3" node and returns 3
+   int len = Length(head); // the list is now empty, so len == 0
+}
+
+void DeleteListTest (struct node **head)
+{
+   struct node *curr;
+   if (head == NULL || *head == NULL) {
+      return;
+   }
+   while ((curr = *head) != NULL) {
+      *head = *head->next;
+      free(curr);
+   }
+
+   // print the list and make sure nothing prints
+   printList(*head);
+   return;
 }
